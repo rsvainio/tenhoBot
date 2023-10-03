@@ -1,14 +1,16 @@
 import discord
 import json
+import databaseManipulation
 
-def loadToken():
-    with open("bot.json") as f:
+
+def loadConfig():
+    with open('config.json') as f:
         data = json.load(f)
         return data['token']
-
-
+    
 def runDiscordBot():
-    TOKEN = loadToken()
+    configs = loadConfig()
+    TOKEN = configs['token']
     intents = discord.Intents.all()
     client = discord.Client(intents=intents)
 
@@ -24,16 +26,20 @@ def runDiscordBot():
         username =      str(message.author)
         userMessage =   str(message.content)
         channel =       str(message.channel)
-        print(f"{username} said: '{userMessage}' on {channel}")
+        print(f'{username} said: "{userMessage}" on #{channel}')
 
-        if userMessage.lower().startswith("hello"):
-            await message.channel.send("YO!")
+        if userMessage.lower().startswith('hello'):
+            await message.channel.send('YO!')
 
     @client.event
-    async def on_raw_reaction_add(reaction):
+    # catch 'repostimiespate'
+    async def on_reaction_add(reaction, user):
         try:
-            emoji = reaction.emoji
-            print(emoji.name)
+            if reaction.is_custom_emoji():
+                if reaction.emoji.name == 'Tenho':
+                    databaseManipulation.queryDatabase(user.name)
+            else:
+                print('non-custom')
         except Exception as e:
             print(e)
 
