@@ -29,7 +29,7 @@ def runDiscordBot():
 
     @client.event
     # catch 'repostimiespate'
-    async def on_reaction_add(reaction, user):
+    async def on_reaction_add(reaction: discord.Reaction, user: discord.Member):
         try:
             if reaction.is_custom_emoji():
                 if reaction.emoji.name == 'Tenho':
