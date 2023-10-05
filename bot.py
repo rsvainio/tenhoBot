@@ -13,6 +13,7 @@ import operationLogging
 def runDiscordBot():
     TOKEN = loadConfig('token')
     intents = discord.Intents.all()
+    #intents = discord.Intents.default()
     bot = commands.Bot(command_prefix = '!', intents=intents)
     operationLogging.init()
 
@@ -47,16 +48,13 @@ def runDiscordBot():
     @bot.tree.command(name='hello', description='Greet the bot and get a "witty" response')
     async def hello(interaction: discord.Interaction):
         response = databaseManipulation.fetchResponse()
-        embed = embedDecorator(interaction)
-        embed.add_field(name=response[1], value='')
-        embed.set_footer(text=f"Author: {response[0]}")
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(response[1])
 
     @bot.tree.command(name='add_response', description="Add a command to the bot's list of responses used in the /hello command")
     async def add_response(interaction: discord.Interaction, response: str):
         try:
             response = str(response)
-            if response == None:
+            if response == None or len(response) >= 255:
                 raise Exception
         except Exception as e:
             operationLogging.log(e)
@@ -74,8 +72,7 @@ def runDiscordBot():
     async def tapan_ittes(interaction: discord.Interaction):
         operationLogging.log(f'{interaction.user} used: "{interaction.command}" on #{interaction.channel}')
         embed = embedDecorator(interaction)
-        if False:
-        #if await bot.is_owner(interaction.user) or interaction.user.name in loadConfig('whitelist'):
+        if await bot.is_owner(interaction.user) or interaction.user.name in loadConfig('whitelist'):
             operationLogging.log('Shutting down...')
             embed.add_field(name='kuolen nyt', value='')
             await interaction.response.send_message(embed=embed)
