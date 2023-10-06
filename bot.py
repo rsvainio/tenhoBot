@@ -1,6 +1,6 @@
 import discord
 from discord import Interaction
-from discord.ext import commands
+from discord.ext import commands, tasks
 import json
 import datetime
 import random
@@ -8,7 +8,7 @@ import os
 import databaseManipulation
 import operationLogging
 
-#TODO: Implement logging
+#TODO: make sure logging is actually done at each function
 
 def runDiscordBot():
     TOKEN = loadConfig('token')
@@ -29,8 +29,9 @@ def runDiscordBot():
         username =      str(message.author)
         userMessage =   str(message.content)
         channel =       str(message.channel)
-        operationLogging.log(f'{username} said: "{userMessage}" on #{channel}')
-
+        
+        if userMessage != '':
+            operationLogging.log(f'{username} said: "{userMessage}" on #{channel}')
         if userMessage.lower().startswith('hello'):
             await message.channel.send('YO!')
 
@@ -47,8 +48,8 @@ def runDiscordBot():
 
     @bot.tree.command(name='hello', description='Greet the bot and get a "witty" response')
     async def hello(interaction: discord.Interaction):
-        response = databaseManipulation.fetchResponse()
-        await interaction.response.send_message(response[1])
+        dbResponse = await databaseManipulation.fetchResponse()
+        await interaction.response.send_message(dbResponse[1])
 
     @bot.tree.command(name='add_response', description="Add a command to the bot's list of responses used in the /hello command")
     async def add_response(interaction: discord.Interaction, response: str):
@@ -68,6 +69,47 @@ def runDiscordBot():
         embed.add_field(name="Thanks for your input, sucker\nThis one's going in my cringe compilation", value='')
         await interaction.response.send_message(embed=embed)
 
+    @bot.tree.command(name='keep_company', description="Get Tenho to keep you company on a voice channel")
+    async def keep_company(interaction: discord.Interaction):
+        embed = embedDecorator(interaction)
+        if not interaction.user.voice:
+            embed.add_field(name="Join a voice channel first, fool", value='')
+            return await interaction.response.send_message(embed=embed)
+
+        voiceChannel: discord.VoiceChannel = interaction.user.voice.channel
+        voiceClient: discord.VoiceClient = await voiceChannel.connect()
+        embed.add_field(name=f"Connected to voice channel {voiceChannel.name}", value='')
+        await interaction.response.send_message(embed=embed)
+
+        @tasks.loop(seconds=20.0, count=3)
+        async def speak():
+            # actually need to install ffmpeg also
+            randomFile = random.choice(os.listdir('media/sound'))
+            print(f'media/sound/{randomFile}')
+            voiceClient.play(discord.FFmpegPCMAudio(f'media/sound/{randomFile}'))
+
+        @speak.after_loop
+        async def after_speak():
+            await voiceClient.disconnect()
+            voiceClient.cleanup()
+
+        speak.start()
+
+    @bot.tree.command(name='leave_company', description="Tell Tenho to go back home to Varissuo")
+    async def leave_company(interaction: discord.Interaction):
+        embed = embedDecorator(interaction)
+        if interaction.user.voice and bot.voice_clients:
+            for voiceClient in bot.voice_clients:
+                if voiceClient.guild == interaction.guild:
+                    await voiceClient.disconnect()
+                    voiceClient.cleanup()
+                   
+                    embed.add_field(name=f"Disconnected from {voiceClient.channel.name}", value='')
+                    return await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            embed.add_field(name="Join a voice channel with me in it first, fool", value='')
+            return await interaction.response.send_message(embed=embed)
+
     @bot.tree.command(name='tapan_ittes', description="Make the bot sad and tell it to shut down")
     async def tapan_ittes(interaction: discord.Interaction):
         operationLogging.log(f'{interaction.user} used: "{interaction.command}" on #{interaction.channel}')
@@ -75,15 +117,15 @@ def runDiscordBot():
         if await bot.is_owner(interaction.user) or interaction.user.name in loadConfig('whitelist'):
             operationLogging.log('Shutting down...')
             embed.add_field(name='kuolen nyt', value='')
-            await interaction.response.send_message(embed=embed)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             await bot.close()
         else:
             #TODO: Do something fun here (read: permaban their ass)
             embed.add_field(name='kuolet nyt', value='')
             await interaction.response.send_message(embed=embed)
 
-            randomFile = random.choice(os.listdir('media/'))
-            with open(f'media/{randomFile}', 'rb') as f:
+            randomFile = random.choice(os.listdir('media/image'))
+            with open(f'media/image/{randomFile}', 'rb') as f:
                 pic = discord.File(f)
                 await interaction.channel.send(file=pic)
                 await interaction.guild.create_scheduled_event(
@@ -102,11 +144,14 @@ def runDiscordBot():
     @commands.guild_only()
     @commands.is_owner()
     async def sync(interaction: discord.Interaction):
-        synced = await bot.tree.sync()
-        operationLogging.log(f'Synced {len(synced)} commands')
-        embed = embedDecorator(interaction)
-        embed.add_field(name=f'Synced {len(synced)} commands', value='')
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        try:
+            synced = await bot.tree.sync()
+            operationLogging.log(f'Synced {len(synced)} commands')
+            embed = embedDecorator(interaction)
+            embed.add_field(name=f'Synced {len(synced)} commands', value='')
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        except commands.NotOwner as e:
+            operationLogging.log(f'{interaction.user.name} tried to use /sync on #{interaction.channel}')
 
     bot.run(TOKEN)
 

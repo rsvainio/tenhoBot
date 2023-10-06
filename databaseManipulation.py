@@ -47,7 +47,7 @@ def addEntry(values: tuple, table: str):
     except sqlite3.ProgrammingError() as e:
         print(e)
 
-def fetchResponse():
+async def fetchResponse():
     if dbConn == None:
         connectDatabase(database)
     cursor = dbConn.cursor()
