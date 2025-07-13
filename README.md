@@ -1,8 +1,6 @@
-A bot for Discord with a variety of commands, built using the [Discord.py](https://github.com/Rapptz/discord.py) API wrapper
-
 # TenhoBot
 
-A Discord bot built using the [Discord Python API wrapper](https://github.com/Rapptz/discord.py) that you can run locally.
+A locally-run bot for Discord with a variety of commands, built using the [Discord.py](https://github.com/Rapptz/discord.py) API wrapper
 
 Configure as per the [Discord documentation](https://discord.com/developers/docs/intro).
 
