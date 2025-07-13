@@ -4,9 +4,12 @@ from discord.ext import commands, tasks
 import json
 import datetime
 import random
+import asyncio
 import os
+import speech_recognition as sr
 import databaseManipulation
 import operationLogging
+import aija
 
 #TODO: make sure logging is actually done at each function
 
@@ -15,6 +18,7 @@ def runDiscordBot():
     intents = discord.Intents.all()
     #intents = discord.Intents.default()
     bot = commands.Bot(command_prefix = '!', intents=intents)
+    speechRecognizer = sr.Recognizer()
     operationLogging.init()
 
     @bot.event
@@ -51,6 +55,13 @@ def runDiscordBot():
         dbResponse = await databaseManipulation.fetchResponse()
         await interaction.response.send_message(dbResponse[1])
 
+    @bot.tree.command(name='aijastoori', description="Have Tenho tell what he's cooking for his friends")
+    async def aijastoori(interaction: discord.Interaction):
+        story = aija.mega_aija(random.randint(10, 100))
+        if (len(story) > 2000):
+            story = story[:2000]
+        await interaction.response.send_message(story)
+
     @bot.tree.command(name='add_response', description="Add a command to the bot's list of responses used in the /hello command")
     async def add_response(interaction: discord.Interaction, response: str):
         try:
@@ -71,22 +82,23 @@ def runDiscordBot():
 
     @bot.tree.command(name='keep_company', description="Get Tenho to keep you company on a voice channel")
     async def keep_company(interaction: discord.Interaction):
-        embed = embedDecorator(interaction)
-        if not interaction.user.voice:
-            embed.add_field(name="Join a voice channel first, fool", value='')
-            return await interaction.response.send_message(embed=embed)
+        voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
 
-        voiceChannel: discord.VoiceChannel = interaction.user.voice.channel
-        voiceClient: discord.VoiceClient = await voiceChannel.connect()
-        embed.add_field(name=f"Connected to voice channel {voiceChannel.name}", value='')
-        await interaction.response.send_message(embed=embed)
-
-        @tasks.loop(seconds=20.0, count=3)
+        @tasks.loop(seconds=20.0, count=4)
         async def speak():
-            # actually need to install ffmpeg also
+            if voiceClient.is_playing:
+                print('sleeping for 2')
+                await asyncio.sleep(2)
             randomFile = random.choice(os.listdir('media/sound'))
-            print(f'media/sound/{randomFile}')
-            voiceClient.play(discord.FFmpegPCMAudio(f'media/sound/{randomFile}'))
+            source = f'media/sound/{randomFile}'
+            print(source)
+            player = discord.FFmpegPCMAudio(source, executable='utils/FFmpeg/bin/ffmpeg.exe')
+
+            try:
+                voiceClient.play(player, after=lambda e: voiceClient.stop())
+            except discord.errors.ClientException:
+                voiceClient.stop()
+                voiceClient.play(player, after=lambda e: voiceClient.stop())
 
         @speak.after_loop
         async def after_speak():
@@ -101,6 +113,8 @@ def runDiscordBot():
         if interaction.user.voice and bot.voice_clients:
             for voiceClient in bot.voice_clients:
                 if voiceClient.guild == interaction.guild:
+                    if voiceClient.is_playing:
+                        voiceClient.stop()
                     await voiceClient.disconnect()
                     voiceClient.cleanup()
                    
@@ -109,6 +123,20 @@ def runDiscordBot():
         else:
             embed.add_field(name="Join a voice channel with me in it first, fool", value='')
             return await interaction.response.send_message(embed=embed)
+
+    #TODO: review whether this is even worth it, requires swapping from discord.py to pycord
+    @bot.tree.command(name='come_chat', description="Have Tenho come and talk shit")
+    async def come_chat(interaction: discord.Interaction):
+        voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
+        voiceClient.start_recording(
+            discord.sinks.WaveSink(),  # The sink type to use.
+            once_done,  # What to do once done.
+            interaction.channel  # The channel to disconnect from.
+        )
+
+        speechRecognizer.recognize_google_cloud()
+        
+        return
 
     @bot.tree.command(name='tapan_ittes', description="Make the bot sad and tell it to shut down")
     async def tapan_ittes(interaction: discord.Interaction):
@@ -154,6 +182,24 @@ def runDiscordBot():
             operationLogging.log(f'{interaction.user.name} tried to use /sync on #{interaction.channel}')
 
     bot.run(TOKEN)
+
+#TODO: add a check to see if the bot is already in voice
+async def joinVoiceChannel(interaction: discord.Interaction):
+    embed = embedDecorator(interaction)
+    if not interaction.user.voice:
+        embed.add_field(name="Join a voice channel first, fool", value='')
+        await interaction.response.send_message(embed=embed)
+        return
+
+    voiceChannel: discord.VoiceChannel = interaction.user.voice.channel
+    voiceClient: discord.VoiceClient = await voiceChannel.connect()
+    voiceClient.pause()
+    embed.add_field(name=f"Connected to voice channel {voiceChannel.name}", value='')
+    await interaction.response.send_message(embed=embed)
+    return voiceClient
+
+def leaveVoiceChannel():
+    return
 
 def loadConfig(field):
     with open('config.json') as f:
