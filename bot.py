@@ -107,7 +107,7 @@ def runDiscordBot():
 
         speak.start()
 
-    @bot.tree.command(name='leave_company', description="Tell Tenho to go back home to Varissuo")
+    @bot.tree.command(name='leave_company', description="Tell Tenho to go back home")
     async def leave_company(interaction: discord.Interaction):
         embed = embedDecorator(interaction)
         if interaction.user.voice and bot.voice_clients:
@@ -125,7 +125,9 @@ def runDiscordBot():
             return await interaction.response.send_message(embed=embed)
 
     #TODO: review whether this is even worth it, requires swapping from discord.py to pycord
-    @bot.tree.command(name='come_chat', description="Have Tenho come and talk shit")
+    #      also means this is currently non-functional
+
+    @bot.tree.command(name='come_chat', description="Have Tenho come and talk")
     async def come_chat(interaction: discord.Interaction):
         voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
         voiceClient.start_recording(
