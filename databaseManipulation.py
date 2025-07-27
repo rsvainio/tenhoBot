@@ -1,11 +1,10 @@
 import sqlite3
 import sys
-import random
 
 dbConn = None
-database = 'database.db'
+database: str = 'database.db'
 
-def connectDatabase(database: str):
+def connectDatabase(database):
     conn = sqlite3.connect(f'databases/{database}')
     print('connected to database:', database)
     global dbConn

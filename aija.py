@@ -77,9 +77,6 @@ def aija_story():
     def append_dressing_or_ending():
         return f'dressingiks {random_choice(dressings)}.' if random_int(1, 100) > 50 else f'ja sit viel {random_choice(endings)} :D'
 
-    def append_final_step():
-        return f' {random_choice(final_steps)}.' if random_int(1, 100) > 50 else ''
-
     is_plural = t.endswith("t")
     
     story = f"moro {t} :D mitä {t}. {s} nähä {'teit' if is_plural else 'sua'} :D {u} {'teil' if is_plural else 'sulle'} {k} {l}. tän reseptin opin kun olin {e} {n} :D pistetää sekaa vähän {o} {r} {m} :D {append_dressing_or_ending()}"
@@ -100,7 +97,7 @@ def mega_aija(count):
 
     def append_final_step():
         return f' {random_choice(final_steps)}.' if random_int(1, 100) > 50 else ''
-    
+
     is_plural = t.endswith("t")
     story = f"moro {t} :D mitä {t}. {s} nähä {'teit' if is_plural else 'sua'} :D {u} {'teil' if is_plural else 'sulle'} {k} {l}. tän reseptin opin kun olin {e} {n} :D"
 
@@ -118,7 +115,7 @@ def mega_aija(count):
 
         substory = f" pistetää sekaa vähän {o} {r} {m} :D {append_dressing_or_ending()} ja"
         story += substory
-    
+
     story +=  f" {append_final_step()} nonii toivottavasti maistuu. mä rakastan {'teit' if is_plural else 'sua'} {t} :D"
     return story
 

@@ -1,12 +1,11 @@
 import discord
-from discord import Interaction
 from discord.ext import commands, tasks
 import json
 import datetime
 import random
 import asyncio
 import os
-import speech_recognition as sr
+#import speech_recognition as sr
 import databaseManipulation
 import operationLogging
 import aija
@@ -18,7 +17,7 @@ def runDiscordBot():
     intents = discord.Intents.all()
     #intents = discord.Intents.default()
     bot = commands.Bot(command_prefix = '!', intents=intents)
-    speechRecognizer = sr.Recognizer()
+    #speechRecognizer = sr.Recognizer()
     operationLogging.init()
 
     @bot.event
@@ -33,7 +32,7 @@ def runDiscordBot():
         username =      str(message.author)
         userMessage =   str(message.content)
         channel =       str(message.channel)
-        
+
         if userMessage != '':
             operationLogging.log(f'{username} said: "{userMessage}" on #{channel}')
         if userMessage.lower().startswith('hello'):
@@ -66,9 +65,8 @@ def runDiscordBot():
     async def add_response(interaction: discord.Interaction, response: str):
         try:
             response = str(response)
-            if response == None or len(response) >= 255:
-                raise Exception
-        except Exception as e:
+            assert len(response < 255)
+        except AssertionError as e:
             operationLogging.log(e)
             embed = embedDecorator(interaction)
             embed.add_field(name='Use a proper response, dumbass', value='')
@@ -126,7 +124,7 @@ def runDiscordBot():
 
     #TODO: review whether this is even worth it, requires swapping from discord.py to pycord
     #      also means this is currently non-functional
-
+    '''
     @bot.tree.command(name='come_chat', description="Have Tenho come and talk")
     async def come_chat(interaction: discord.Interaction):
         voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
@@ -139,7 +137,8 @@ def runDiscordBot():
         speechRecognizer.recognize_google_cloud()
         
         return
-
+    '''
+        
     @bot.tree.command(name='tapan_ittes', description="Make the bot sad and tell it to shut down")
     async def tapan_ittes(interaction: discord.Interaction):
         operationLogging.log(f'{interaction.user} used: "{interaction.command}" on #{interaction.channel}')
@@ -180,7 +179,7 @@ def runDiscordBot():
             embed = embedDecorator(interaction)
             embed.add_field(name=f'Synced {len(synced)} commands', value='')
             await interaction.response.send_message(embed=embed, ephemeral=True)
-        except commands.NotOwner as e:
+        except commands.NotOwner:
             operationLogging.log(f'{interaction.user.name} tried to use /sync on #{interaction.channel}')
 
     bot.run(TOKEN)
@@ -204,7 +203,7 @@ def leaveVoiceChannel():
     return
 
 def loadConfig(field):
-    with open('config.json') as f:
+    with open('config.json', encoding='utf-8') as f:
         configs = json.load(f)
         return configs[field]
 
