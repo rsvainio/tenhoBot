@@ -5,7 +5,6 @@ import datetime
 import random
 import asyncio
 import os
-#import speech_recognition as sr
 import databaseManipulation
 import operationLogging
 import aija
@@ -121,23 +120,6 @@ def runDiscordBot():
         else:
             embed.add_field(name="Join a voice channel with me in it first, fool", value='')
             return await interaction.response.send_message(embed=embed)
-
-    #TODO: review whether this is even worth it, requires swapping from discord.py to pycord
-    #      also means this is currently non-functional
-    '''
-    @bot.tree.command(name='come_chat', description="Have Tenho come and talk")
-    async def come_chat(interaction: discord.Interaction):
-        voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
-        voiceClient.start_recording(
-            discord.sinks.WaveSink(),  # The sink type to use.
-            once_done,  # What to do once done.
-            interaction.channel  # The channel to disconnect from.
-        )
-
-        speechRecognizer.recognize_google_cloud()
-        
-        return
-    '''
         
     @bot.tree.command(name='tapan_ittes', description="Make the bot sad and tell it to shut down")
     async def tapan_ittes(interaction: discord.Interaction):
