@@ -9,8 +9,6 @@ import databaseManipulation
 import operationLogging
 import aija
 
-#TODO: make sure logging is actually done at each function
-
 def runDiscordBot():
     TOKEN = loadConfig('token')
     intents = discord.Intents.all()
@@ -27,6 +25,7 @@ def runDiscordBot():
         print(f'{bot.user} is now running!')
         operationLogging.log(f'{bot.user} is now running!')
 
+    '''
     @bot.event
     async def on_message(message: discord.Message):
         if message.author == bot.user:
@@ -39,17 +38,15 @@ def runDiscordBot():
             operationLogging.log(f'{username} said: "{userMessage}" on #{channel}')
         if userMessage.lower().startswith('hello'):
             await message.channel.send('YO!')
+    '''
 
-    @bot.event
     # catch 'repostimiespate'
+    @bot.event
     async def on_reaction_add(reaction: discord.Reaction, user: discord.Member):
-        try:
-            if reaction.is_custom_emoji():
-                if reaction.emoji.name == 'repostimies':
-                    operationLogging.log(f'{user.name} reacted with repostimies to a message on #{reaction.message.channel}')
-                    databaseManipulation.incrementUser(user.name)
-        except Exception as e:
-            operationLogging.log(e)
+        if reaction.is_custom_emoji():
+            if reaction.emoji.name == 'repostimies':
+                operationLogging.log(f'{user.name} reacted with repostimies to a message on #{reaction.message.channel}')
+                databaseManipulation.incrementUser(user.name)
 
     @bot.tree.command(name='hello', description='Greet the bot and get a "witty" response')
     async def hello(interaction: discord.Interaction):
@@ -65,11 +62,8 @@ def runDiscordBot():
 
     @bot.tree.command(name='add_response', description="Add a command to the bot's list of responses used in the /hello command")
     async def add_response(interaction: discord.Interaction, response: str):
-        try:
-            response = str(response)
-            assert len(response < 255)
-        except AssertionError as e:
-            operationLogging.log(e)
+        response = str(response)
+        if len(response > 255):
             embed = embedDecorator(interaction)
             embed.add_field(name='Use a proper response, dumbass', value='')
             await interaction.response.send_message(embed=embed)
