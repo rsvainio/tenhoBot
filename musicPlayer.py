@@ -11,6 +11,7 @@ class MusicPlayer(commands.Cog):
         self.bot: commands.Bot = bot
         self.downloadFolder: str = 'media/videos'
         self.videoQueue: list = []
+        self.videoTask: asyncio.Task
         self.playingQueue = False
 
     def addByUrl(self, url: str):
@@ -19,7 +20,6 @@ class MusicPlayer(commands.Cog):
         videoLength: int = result[1]
         if filename:
             self.addToQueue(filename=filename, length=videoLength)
-        #player = discord.FFmpegPCMAudio(source, executable='utils/FFmpeg/bin/ffmpeg.exe')
 
     def addByQuery(self, query: str):
         results = Search(query)
@@ -62,20 +62,14 @@ class MusicPlayer(commands.Cog):
     async def start_queue(self, interaction: discord.Interaction):
         voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
         self.playingQueue = True
-        def nextVideo() -> tuple:
+
+        async def playVideo():
             video: tuple = self.videoQueue[0]
-            self.videoQueue.pop(0)
-            print(f'Videos left in queue: {len(self.videoQueue)}')
-            return video
-
-        while bool(self.videoQueue) and self.playingQueue: # not empty and queue playing
-            if voiceClient.is_playing:
-                await asyncio.sleep(5)
-                continue
-
-            video = nextVideo()
             filename: str = video[0]
             length: int = video[1]
+            self.videoQueue.pop(0)
+            print(f'Videos left in queue: {len(self.videoQueue)}')
+            
             source = f'media/videos/{filename}'
             print(f'Now playing video {filename}, length: {length}s')
             player = discord.FFmpegPCMAudio(source, executable='utils/FFmpeg/bin/ffmpeg.exe')
@@ -85,8 +79,15 @@ class MusicPlayer(commands.Cog):
                 await asyncio.sleep(length) # sleep for the duration of the video
             except discord.errors.ClientException:
                 voiceClient.stop()
-                break
                 #voiceClient.play(player, after=lambda e: voiceClient.stop())
+
+        while bool(self.videoQueue) and self.playingQueue: # not empty and playing queue
+            if voiceClient.is_playing:
+                await asyncio.sleep(5)
+                continue
+
+            self.videoTask = asyncio.create_task(playVideo())
+            await self.videoTask
 
         self.playingQueue = False
         await voiceClient.disconnect()
@@ -97,12 +98,11 @@ class MusicPlayer(commands.Cog):
     async def stop_queue(self, interaction: discord.Interaction):
         self.playingQueue = False
         voiceClients: list[discord.VoiceClient] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+        self.videoTask.cancel()
         for voiceClient in voiceClients:
             voiceClient: discord.VoiceClient
             await voiceClient.disconnect()
             voiceClient.cleanup()
-
-        return
 
     @commands.command(name='add_video_by_url', description="Add a video to the queue by URL")
     async def add_video_by_url(self, interaction: discord.Interaction, response: str):
@@ -126,11 +126,19 @@ class MusicPlayer(commands.Cog):
 
     @commands.command(name='skip_video', description="Skip the currently playing video")
     async def skip_video(self, interaction: discord.Interaction):
-        return
+        voiceClients: list[discord.VoiceClient] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+        if bool(voiceClients) and self.playingQueue: # if voice clients exist and playing queue
+            self.videoTask.cancel()
+
 
     @commands.command(name='remove_from_queue', description="Remove a video from the queue by it's position in the queue")
     async def remove_from_queue(self, interaction: discord.Interaction, response: str):
-        return
+        if not bool(self.videoQueue): # if empty
+            print('Video queue is empty, not removing')
+            return
+        
+        self.videoQueue.pop(response)
+        print(f'Videos left in queue: {len(self.videoQueue)}')
 
 if __name__ == '__main__':
     #MusicPlayer(commands.Bot).addByUrl("www.youtube.com/watch?v=kofR7f7oNnE")
