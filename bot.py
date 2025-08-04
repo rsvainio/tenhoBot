@@ -17,12 +17,10 @@ def runDiscordBot():
     #speechRecognizer = sr.Recognizer()
     operationLogging.init()
 
-    # extensions here
-    bot.load_extension("musicPlayer.py")
-
     @bot.event
     async def on_ready():
         print(f'{bot.user} is now running!')
+        await bot.load_extension("musicPlayer")
         operationLogging.log(f'{bot.user} is now running!')
 
     '''
