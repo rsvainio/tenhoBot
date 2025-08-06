@@ -75,12 +75,12 @@ class MusicPlayer(Cog):
             source = f'media/videos/{filename}'
             print(f'Now playing video {filename}, length: {length}s')
             player = discord.FFmpegPCMAudio(source, executable='utils/FFmpeg/bin/ffmpeg.exe')
-
             try:
                 voiceClient.play(player, after=lambda e: voiceClient.stop())
-                await asyncio.sleep(length) # sleep for the duration of the video
-                player.cleanup()
-            except discord.errors.ClientException:
+                await asyncio.sleep(length + 1) # sleep for the duration of the video
+            except asyncio.exceptions.CancelledError:
+                print('Task cancelled, skipping video...')
+            finally:
                 voiceClient.stop()
                 player.cleanup()
 
@@ -94,7 +94,6 @@ class MusicPlayer(Cog):
 
         self.playingQueue = False
         await voiceClient.disconnect()
-        voiceClient.cleanup()
 
     # leave the voice channel aswell
     @app_commands.command(name='stop_queue', description="Stop playing videos from the queue")
@@ -103,7 +102,6 @@ class MusicPlayer(Cog):
         self.videoTask.cancel()
         voiceClient: discord.VoiceClient = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         await voiceClient.disconnect()
-        voiceClient.cleanup()
 
     @app_commands.command(name='add_video_by_url', description="Add a video to the queue by URL")
     async def add_video_by_url(self, interaction: discord.Interaction, response: str):
@@ -127,7 +125,7 @@ class MusicPlayer(Cog):
 
     @app_commands.command(name='skip_video', description="Skip the currently playing video")
     async def skip_video(self, interaction: discord.Interaction):
-        voiceClients: list[discord.VoiceClient] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+        voiceClients = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         if bool(voiceClients) and self.playingQueue: # if voice clients exist and playing queue
             self.videoTask.cancel()
 
@@ -139,10 +137,6 @@ class MusicPlayer(Cog):
 
         self.videoQueue.pop(response)
         print(f'Videos left in queue: {len(self.videoQueue)}')
-
-if __name__ == '__main__':
-    #MusicPlayer(commands.Bot).addByUrl("www.youtube.com/watch?v=kofR7f7oNnE")
-    MusicPlayer(Bot).addByQuery("The Nightman cometh")
 
 async def setup(client: Bot):
     await client.add_cog(MusicPlayer(bot = client))
