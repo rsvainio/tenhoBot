@@ -130,13 +130,12 @@ class MusicPlayer(commands.Cog):
         if bool(voiceClients) and self.playingQueue: # if voice clients exist and playing queue
             self.videoTask.cancel()
 
-
     @commands.command(name='remove_from_queue', description="Remove a video from the queue by it's position in the queue")
     async def remove_from_queue(self, interaction: discord.Interaction, response: str):
         if not bool(self.videoQueue): # if empty
             print('Video queue is empty, not removing')
             return
-        
+
         self.videoQueue.pop(response)
         print(f'Videos left in queue: {len(self.videoQueue)}')
 
@@ -144,5 +143,6 @@ if __name__ == '__main__':
     #MusicPlayer(commands.Bot).addByUrl("www.youtube.com/watch?v=kofR7f7oNnE")
     MusicPlayer(commands.Bot).addByQuery("The Nightman cometh")
 
-async def setup(bot: commands.Bot):
-    await bot.add_cog(MusicPlayer(bot = bot))
+async def setup(client: commands.Bot):
+    await client.add_cog(MusicPlayer(bot = client))
+    print('Added cog musicPlayer succesfully')

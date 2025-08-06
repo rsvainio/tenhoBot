@@ -12,31 +12,20 @@ import aija
 def runDiscordBot():
     TOKEN = loadConfig('token')
     intents = discord.Intents.all()
-    #intents = discord.Intents.default()
     bot = commands.Bot(command_prefix = '!', intents=intents)
-    #speechRecognizer = sr.Recognizer()
     operationLogging.init()
 
     @bot.event
     async def on_ready():
         print(f'{bot.user} is now running!')
-        await bot.load_extension("musicPlayer")
+        # should make the loading of extensions more general
+        # maybe just a separate folder for extensions
+        # and then search it for .py files?
+        await bot.load_extension('musicPlayer')
+        cogCommands = bot.get_cog('MusicPlayer').get_commands()
+        print([c.name for c in cogCommands])
+
         operationLogging.log(f'{bot.user} is now running!')
-
-    '''
-    @bot.event
-    async def on_message(message: discord.Message):
-        if message.author == bot.user:
-            return
-        username =      str(message.author)
-        userMessage =   str(message.content)
-        channel =       str(message.channel)
-
-        if userMessage != '':
-            operationLogging.log(f'{username} said: "{userMessage}" on #{channel}')
-        if userMessage.lower().startswith('hello'):
-            await message.channel.send('YO!')
-    '''
 
     # catch 'repostimiespate'
     @bot.event
@@ -109,7 +98,7 @@ def runDiscordBot():
                         voiceClient.stop()
                     await voiceClient.disconnect()
                     voiceClient.cleanup()
-                   
+
                     embed.add_field(name=f"Disconnected from {voiceClient.channel.name}", value='')
                     return await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
