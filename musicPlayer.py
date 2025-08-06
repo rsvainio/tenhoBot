@@ -1,14 +1,15 @@
 import discord
-from discord.ext import commands
+from discord import app_commands
+from discord.ext.commands import Bot, Cog
 from bot import embedDecorator, joinVoiceChannel
 import asyncio
 from pytubefix import YouTube
 from pytubefix import Search
 from pytubefix.cli import on_progress
 
-class MusicPlayer(commands.Cog):
+class MusicPlayer(Cog):
     def __init__(self, bot):
-        self.bot: commands.Bot = bot
+        self.bot: Bot = bot
         self.downloadFolder: str = 'media/videos'
         self.videoQueue: list = []
         self.videoTask: asyncio.Task
@@ -30,6 +31,7 @@ class MusicPlayer(commands.Cog):
             self.addToQueue(filename=filename, length=videoLength)
 
     def addToQueue(self, filename: str, length: int):
+        print(f'Adding to queue: {filename}')
         self.videoQueue.append((filename, length))
     
     def downloadVideo(self, yt: YouTube):
@@ -48,18 +50,18 @@ class MusicPlayer(commands.Cog):
 
     @staticmethod
     def shortenFilepath(path: str) -> str:
-        marker = 'media/videos/'
+        marker = 'media\\videos\\'
         index = path.find(marker)
         if index != -1:
-            return path[index:]
+            return path[index + len(marker):]
         else:
-            return path  # return the original string if marker is not found
-
+            return path  # Return the original string if marker is not found
 
     #                               Bot commands
     # join the voice channel aswell
-    @commands.command(name='start_queue', description="Start playing videos from the queue")
+    @app_commands.command(name='start_queue', description="Start playing videos from the queue")
     async def start_queue(self, interaction: discord.Interaction):
+        print('Starting to play video queue')
         voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
         self.playingQueue = True
 
@@ -69,7 +71,7 @@ class MusicPlayer(commands.Cog):
             length: int = video[1]
             self.videoQueue.pop(0)
             print(f'Videos left in queue: {len(self.videoQueue)}')
-            
+
             source = f'media/videos/{filename}'
             print(f'Now playing video {filename}, length: {length}s')
             player = discord.FFmpegPCMAudio(source, executable='utils/FFmpeg/bin/ffmpeg.exe')
@@ -77,12 +79,13 @@ class MusicPlayer(commands.Cog):
             try:
                 voiceClient.play(player, after=lambda e: voiceClient.stop())
                 await asyncio.sleep(length) # sleep for the duration of the video
+                player.cleanup()
             except discord.errors.ClientException:
                 voiceClient.stop()
-                #voiceClient.play(player, after=lambda e: voiceClient.stop())
+                player.cleanup()
 
         while bool(self.videoQueue) and self.playingQueue: # not empty and playing queue
-            if voiceClient.is_playing:
+            if voiceClient.is_playing():
                 await asyncio.sleep(5)
                 continue
 
@@ -94,43 +97,41 @@ class MusicPlayer(commands.Cog):
         voiceClient.cleanup()
 
     # leave the voice channel aswell
-    @commands.command(name='stop_queue', description="Stop playing videos from the queue")
+    @app_commands.command(name='stop_queue', description="Stop playing videos from the queue")
     async def stop_queue(self, interaction: discord.Interaction):
         self.playingQueue = False
-        voiceClients: list[discord.VoiceClient] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         self.videoTask.cancel()
-        for voiceClient in voiceClients:
-            voiceClient: discord.VoiceClient
-            await voiceClient.disconnect()
-            voiceClient.cleanup()
+        voiceClient: discord.VoiceClient = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+        await voiceClient.disconnect()
+        voiceClient.cleanup()
 
-    @commands.command(name='add_video_by_url', description="Add a video to the queue by URL")
+    @app_commands.command(name='add_video_by_url', description="Add a video to the queue by URL")
     async def add_video_by_url(self, interaction: discord.Interaction, response: str):
         response = str(response)
-        if len(response > 255):
+        if len(response) > 255:
             embed = embedDecorator(interaction)
             embed.add_field(name='Give a url fewer than 255 characters', value='')
             await interaction.response.send_message(embed=embed)
             return
         self.addByUrl(response)
 
-    @commands.command(name='add_video_by_query', description="Add a video to the queue by search query")
+    @app_commands.command(name='add_video_by_query', description="Add a video to the queue by search query")
     async def add_video_by_query(self, interaction: discord.Interaction, response: str):
         response = str(response)
-        if len(response > 127):
+        if len(response) > 127:
             embed = embedDecorator(interaction)
             embed.add_field(name='Give a search query fewer than 127 characters', value='')
             await interaction.response.send_message(embed=embed)
             return
         self.addByQuery(response)
 
-    @commands.command(name='skip_video', description="Skip the currently playing video")
+    @app_commands.command(name='skip_video', description="Skip the currently playing video")
     async def skip_video(self, interaction: discord.Interaction):
         voiceClients: list[discord.VoiceClient] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         if bool(voiceClients) and self.playingQueue: # if voice clients exist and playing queue
             self.videoTask.cancel()
 
-    @commands.command(name='remove_from_queue', description="Remove a video from the queue by it's position in the queue")
+    @app_commands.command(name='remove_from_queue', description="Remove a video from the queue by it's position in the queue")
     async def remove_from_queue(self, interaction: discord.Interaction, response: str):
         if not bool(self.videoQueue): # if empty
             print('Video queue is empty, not removing')
@@ -141,8 +142,8 @@ class MusicPlayer(commands.Cog):
 
 if __name__ == '__main__':
     #MusicPlayer(commands.Bot).addByUrl("www.youtube.com/watch?v=kofR7f7oNnE")
-    MusicPlayer(commands.Bot).addByQuery("The Nightman cometh")
+    MusicPlayer(Bot).addByQuery("The Nightman cometh")
 
-async def setup(client: commands.Bot):
+async def setup(client: Bot):
     await client.add_cog(MusicPlayer(bot = client))
     print('Added cog musicPlayer succesfully')

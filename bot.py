@@ -15,16 +15,12 @@ def runDiscordBot():
     bot = commands.Bot(command_prefix = '!', intents=intents)
     operationLogging.init()
 
+    # cogs need to be loaded here since if done in the on_ready
+    # function they don't register their commands correctly
     @bot.event
-    async def on_ready():
-        print(f'{bot.user} is now running!')
-        # should make the loading of extensions more general
-        # maybe just a separate folder for extensions
-        # and then search it for .py files?
+    async def setup_hook():
         await bot.load_extension('musicPlayer')
-        cogCommands = bot.get_cog('MusicPlayer').get_commands()
-        print([c.name for c in cogCommands])
-
+        print(f'{bot.user} is now running!')
         operationLogging.log(f'{bot.user} is now running!')
 
     # catch 'repostimiespate'
@@ -65,7 +61,7 @@ def runDiscordBot():
     async def keep_company(interaction: discord.Interaction):
         voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
 
-        @tasks.loop(seconds=20.0, count=4)
+        @tasks.loop(seconds=20.0, count=1)
         async def speak():
             if voiceClient.is_playing:
                 print('sleeping for 2')
@@ -84,7 +80,7 @@ def runDiscordBot():
         @speak.after_loop
         async def after_speak():
             await voiceClient.disconnect()
-            voiceClient.cleanup()
+            #voiceClient.cleanup()
 
         speak.start()
 
