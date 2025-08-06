@@ -4,7 +4,7 @@ A locally-run bot for Discord with a variety of commands, built using the [Disco
 
 Configure as per the [Discord documentation](https://discord.com/developers/docs/intro).
 
-Additionally, configure *config.json* file in the following format:
+Additionally, configure the *config.json* file in the root folder in the following format:
 ```yaml
 {
     "token": "", # your bot's token here, sourced from the discord developer portal
