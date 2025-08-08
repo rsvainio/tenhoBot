@@ -21,6 +21,7 @@ class MusicPlayer(Cog):
         videoLength: int = result[1]
         if filename:
             self.addToQueue(filename=filename, length=videoLength)
+            return filename
 
     def addByQuery(self, query: str):
         results = Search(query)
@@ -29,6 +30,7 @@ class MusicPlayer(Cog):
         videoLength: int = result[1]
         if filename:
             self.addToQueue(filename=filename, length=videoLength)
+            return filename
 
     def addToQueue(self, filename: str, length: int):
         print(f'Adding to queue: {filename}')
@@ -61,7 +63,17 @@ class MusicPlayer(Cog):
     # join the voice channel aswell
     @app_commands.command(name='Start queue', description="Start playing videos from the queue")
     async def start_queue(self, interaction: discord.Interaction):
+        if self.playingQueue:
+            print('Video queue already playing, not starting')
+            embed = embedDecorator(interaction)
+            embed.add_field(name='Video queue already playing, not starting', value='')
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
         print('Starting to play video queue')
+        embed = embedDecorator(interaction)
+        embed.add_field(name='Starting to play video queue', value='')
+        await interaction.response.send_message(embed=embed)
         voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
         self.playingQueue = True
 
@@ -98,10 +110,19 @@ class MusicPlayer(Cog):
     # leave the voice channel aswell
     @app_commands.command(name='Stop queue', description="Stop playing videos from the queue")
     async def stop_queue(self, interaction: discord.Interaction):
-        self.playingQueue = False
-        self.videoTask.cancel()
-        voiceClient: discord.VoiceClient = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-        await voiceClient.disconnect()
+        if self.playingQueue:
+            self.playingQueue = False
+            self.videoTask.cancel()
+            voiceClient: discord.VoiceClient = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+            await voiceClient.disconnect()
+
+            embed = embedDecorator(interaction)
+            embed.add_field(name='Stopping video queue', value='')
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        else:
+            embed = embedDecorator(interaction)
+            embed.add_field(name='Video queue not ongoing, not stopping', value='')
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name='Add video by query', description="Add a video to the queue by search query")
     async def add_video_by_query(self, interaction: discord.Interaction, query: str):
@@ -109,9 +130,13 @@ class MusicPlayer(Cog):
         if len(query) > 127:
             embed = embedDecorator(interaction)
             embed.add_field(name='Give a search query fewer than 127 characters', value='')
-            await interaction.response.send_message(embed=embed)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-        self.addByQuery(query)
+
+        videoName = self.addByQuery(query)
+        embed = embedDecorator(interaction)
+        embed.add_field(name=f'Adding video {videoName} to queue', value='')
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name='Add video by URL', description="Add a video to the queue by URL")
     async def add_video_by_url(self, interaction: discord.Interaction, url: str):
@@ -119,24 +144,46 @@ class MusicPlayer(Cog):
         if len(url) > 255:
             embed = embedDecorator(interaction)
             embed.add_field(name='Give a url fewer than 255 characters', value='')
-            await interaction.response.send_message(embed=embed)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-        self.addByUrl(url)
+
+        videoName = self.addByUrl(url)
+        embed = embedDecorator(interaction)
+        embed.add_field(name=f'Adding video {videoName} to queue', value='')
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name='Skip video', description="Skip the currently playing video")
     async def skip_video(self, interaction: discord.Interaction):
         voiceClients = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         if bool(voiceClients) and self.playingQueue: # if voice clients exist and playing queue
             self.videoTask.cancel()
+            embed = embedDecorator(interaction)
+            embed.add_field(name='Stopping video queue', value='')
+            await interaction.response.send_message(embed=embed)
+            return
+        else:
+            embed = embedDecorator(interaction)
+            embed.add_field(name=f'Video queue not ongoing, not stopping', value='')
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name='Remove from queue', description="Remove a video from the queue by it's position in the queue")
     async def remove_from_queue(self, interaction: discord.Interaction, index: int):
         if not bool(self.videoQueue): # if empty
-            print('Video queue is empty, not removing')
+            embed = embedDecorator(interaction)
+            embed.add_field(name='Video queue is empty, not removing', value='')
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
-
-        self.videoQueue.pop(index)
-        print(f'Videos left in queue: {len(self.videoQueue)}')
+        try:
+            videoTuple = self.videoQueue[index]
+            self.videoQueue.pop(index)
+            embed = embedDecorator(interaction)
+            embed.add_field(name=f'Removing {videoTuple[0]} from queue position {index}', value='')
+            await interaction.response.send_message(embed=embed)
+            print(f'Videos left in queue: {len(self.videoQueue)}')
+        except IndexError:
+            embed = embedDecorator(interaction)
+            embed.add_field(name=f'No video in queue at position {index}, not removing', value='')
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 async def setup(client: Bot):
     await client.add_cog(MusicPlayer(bot = client))
