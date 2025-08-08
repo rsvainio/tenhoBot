@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands, tasks
 import json
 import datetime
@@ -31,19 +32,19 @@ def runDiscordBot():
                 operationLogging.log(f'{user.name} reacted with repostimies to a message on #{reaction.message.channel}')
                 databaseManipulation.incrementUser(user.name)
 
-    @bot.tree.command(name='hello', description='Greet the bot and get a "witty" response')
+    @app_commands.command(name='Hello', description='Greet the bot and get a "witty" response')
     async def hello(interaction: discord.Interaction):
         dbResponse = await databaseManipulation.fetchResponse()
         await interaction.response.send_message(dbResponse[1])
 
-    @bot.tree.command(name='aijastoori', description="Have Tenho tell what he's cooking for his friends")
+    @app_commands.command(name='Äijästoori', description="Have Tenho tell what he's cooking for his friends")
     async def aijastoori(interaction: discord.Interaction):
         story = aija.mega_aija(random.randint(10, 100))
         if (len(story) > 2000):
             story = story[:2000]
         await interaction.response.send_message(story)
 
-    @bot.tree.command(name='add_response', description="Add a command to the bot's list of responses used in the /hello command")
+    @app_commands.command(name='Add response', description="Add a command to the bot's list of responses used in the /hello command")
     async def add_response(interaction: discord.Interaction, response: str):
         response = str(response)
         if len(response > 255):
@@ -57,7 +58,7 @@ def runDiscordBot():
         embed.add_field(name="Thanks for your input, sucker\nThis one's going in my cringe compilation", value='')
         await interaction.response.send_message(embed=embed)
 
-    @bot.tree.command(name='keep_company', description="Get Tenho to keep you company on a voice channel")
+    @app_commands.command(name='Keep company', description="Get Tenho to keep you company on a voice channel")
     async def keep_company(interaction: discord.Interaction):
         voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
 
@@ -80,11 +81,10 @@ def runDiscordBot():
         @speak.after_loop
         async def after_speak():
             await voiceClient.disconnect()
-            #voiceClient.cleanup()
 
         speak.start()
 
-    @bot.tree.command(name='leave_company', description="Tell Tenho to go back home")
+    @app_commands.command(name='Leave company', description="Tell Tenho to go back home")
     async def leave_company(interaction: discord.Interaction):
         embed = embedDecorator(interaction)
         if interaction.user.voice and bot.voice_clients:
@@ -93,7 +93,6 @@ def runDiscordBot():
                     if voiceClient.is_playing:
                         voiceClient.stop()
                     await voiceClient.disconnect()
-                    voiceClient.cleanup()
 
                     embed.add_field(name=f"Disconnected from {voiceClient.channel.name}", value='')
                     return await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -101,7 +100,7 @@ def runDiscordBot():
             embed.add_field(name="Join a voice channel with me in it first, fool", value='')
             return await interaction.response.send_message(embed=embed)
         
-    @bot.tree.command(name='tapan_ittes', description="Make the bot sad and tell it to shut down")
+    @app_commands.command(name='Tapan ittes', description="Make the bot sad and tell it to shut down")
     async def tapan_ittes(interaction: discord.Interaction):
         operationLogging.log(f'{interaction.user} used: "{interaction.command}" on #{interaction.channel}')
         embed = embedDecorator(interaction)
@@ -131,7 +130,7 @@ def runDiscordBot():
                     reason=f'To laugh at {interaction.user.display_name} for being a dumbass and trying to kill me lmao hahaaa'
                     )
 
-    @bot.tree.command(name='sync', description="Update the bot's list of commands")
+    @app_commands.command(name='Sync', description="Update the bot's list of commands")
     @commands.guild_only()
     @commands.is_owner()
     async def sync(interaction: discord.Interaction):
@@ -155,10 +154,10 @@ async def joinVoiceChannel(interaction: discord.Interaction):
         return
 
     voiceChannel: discord.VoiceChannel = interaction.user.voice.channel
-    voiceClient: discord.VoiceClient = await voiceChannel.connect()
-    voiceClient.pause()
+    voiceClient: discord.VoiceClient = await voiceChannel.connect(reconnect=False)
     embed.add_field(name=f"Connected to voice channel {voiceChannel.name}", value='')
     await interaction.response.send_message(embed=embed)
+    print(voiceClient.channel)
     return voiceClient
 
 def leaveVoiceChannel():

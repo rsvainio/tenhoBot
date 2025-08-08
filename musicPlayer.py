@@ -59,7 +59,7 @@ class MusicPlayer(Cog):
 
     #                               Bot commands
     # join the voice channel aswell
-    @app_commands.command(name='start_queue', description="Start playing videos from the queue")
+    @app_commands.command(name='Start queue', description="Start playing videos from the queue")
     async def start_queue(self, interaction: discord.Interaction):
         print('Starting to play video queue')
         voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
@@ -96,46 +96,46 @@ class MusicPlayer(Cog):
         await voiceClient.disconnect()
 
     # leave the voice channel aswell
-    @app_commands.command(name='stop_queue', description="Stop playing videos from the queue")
+    @app_commands.command(name='Stop queue', description="Stop playing videos from the queue")
     async def stop_queue(self, interaction: discord.Interaction):
         self.playingQueue = False
         self.videoTask.cancel()
         voiceClient: discord.VoiceClient = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         await voiceClient.disconnect()
 
-    @app_commands.command(name='add_video_by_url', description="Add a video to the queue by URL")
-    async def add_video_by_url(self, interaction: discord.Interaction, response: str):
-        response = str(response)
-        if len(response) > 255:
-            embed = embedDecorator(interaction)
-            embed.add_field(name='Give a url fewer than 255 characters', value='')
-            await interaction.response.send_message(embed=embed)
-            return
-        self.addByUrl(response)
-
-    @app_commands.command(name='add_video_by_query', description="Add a video to the queue by search query")
-    async def add_video_by_query(self, interaction: discord.Interaction, response: str):
-        response = str(response)
-        if len(response) > 127:
+    @app_commands.command(name='Add video by query', description="Add a video to the queue by search query")
+    async def add_video_by_query(self, interaction: discord.Interaction, query: str):
+        query = str(query)
+        if len(query) > 127:
             embed = embedDecorator(interaction)
             embed.add_field(name='Give a search query fewer than 127 characters', value='')
             await interaction.response.send_message(embed=embed)
             return
-        self.addByQuery(response)
+        self.addByQuery(query)
 
-    @app_commands.command(name='skip_video', description="Skip the currently playing video")
+    @app_commands.command(name='Add video by URL', description="Add a video to the queue by URL")
+    async def add_video_by_url(self, interaction: discord.Interaction, url: str):
+        url = str(url)
+        if len(url) > 255:
+            embed = embedDecorator(interaction)
+            embed.add_field(name='Give a url fewer than 255 characters', value='')
+            await interaction.response.send_message(embed=embed)
+            return
+        self.addByUrl(url)
+
+    @app_commands.command(name='Skip video', description="Skip the currently playing video")
     async def skip_video(self, interaction: discord.Interaction):
         voiceClients = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         if bool(voiceClients) and self.playingQueue: # if voice clients exist and playing queue
             self.videoTask.cancel()
 
-    @app_commands.command(name='remove_from_queue', description="Remove a video from the queue by it's position in the queue")
-    async def remove_from_queue(self, interaction: discord.Interaction, response: str):
+    @app_commands.command(name='Remove from queue', description="Remove a video from the queue by it's position in the queue")
+    async def remove_from_queue(self, interaction: discord.Interaction, index: int):
         if not bool(self.videoQueue): # if empty
             print('Video queue is empty, not removing')
             return
 
-        self.videoQueue.pop(response)
+        self.videoQueue.pop(index)
         print(f'Videos left in queue: {len(self.videoQueue)}')
 
 async def setup(client: Bot):
