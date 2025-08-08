@@ -1,5 +1,4 @@
 import discord
-from discord import app_commands
 from discord.ext import commands, tasks
 import json
 import datetime
@@ -32,24 +31,24 @@ def runDiscordBot():
                 operationLogging.log(f'{user.name} reacted with repostimies to a message on #{reaction.message.channel}')
                 databaseManipulation.incrementUser(user.name)
 
-    @app_commands.command(name='Hello', description='Greet the bot and get a "witty" response')
+    @bot.tree.command(name='hello', description='Greet the bot and get a "witty" response')
     async def hello(interaction: discord.Interaction):
         dbResponse = await databaseManipulation.fetchResponse()
         await interaction.response.send_message(dbResponse[1])
 
-    @app_commands.command(name='Äijästoori', description="Have Tenho tell what he's cooking for his friends")
+    @bot.tree.command(name='äijästoori', description="Have Tenho tell what he's cooking for his friends")
     async def aijastoori(interaction: discord.Interaction):
         story = aija.mega_aija(random.randint(10, 100))
         if (len(story) > 2000):
             story = story[:2000]
         await interaction.response.send_message(story)
 
-    @app_commands.command(name='Add response', description="Add a command to the bot's list of responses used in the /hello command")
+    @bot.tree.command(name='add_response', description="Add a command to the bot's list of responses used in the /hello command")
     async def add_response(interaction: discord.Interaction, response: str):
         response = str(response)
         if len(response > 255):
             embed = embedDecorator(interaction)
-            embed.add_field(name='Use a proper response, dumbass', value='')
+            embed.add_field(name='use a proper response, dumbass', value='')
             await interaction.response.send_message(embed=embed)
             return
         databaseManipulation.addEntry((interaction.user.name, response), 'Responses')
@@ -58,7 +57,7 @@ def runDiscordBot():
         embed.add_field(name="Thanks for your input, sucker\nThis one's going in my cringe compilation", value='')
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name='Keep company', description="Get Tenho to keep you company on a voice channel")
+    @bot.tree.command(name='keep_company', description="Get Tenho to keep you company on a voice channel")
     async def keep_company(interaction: discord.Interaction):
         voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
 
@@ -84,7 +83,7 @@ def runDiscordBot():
 
         speak.start()
 
-    @app_commands.command(name='Leave company', description="Tell Tenho to go back home")
+    @bot.tree.command(name='leave_company', description="Tell Tenho to go back home")
     async def leave_company(interaction: discord.Interaction):
         embed = embedDecorator(interaction)
         if interaction.user.voice and bot.voice_clients:
@@ -100,7 +99,7 @@ def runDiscordBot():
             embed.add_field(name="Join a voice channel with me in it first, fool", value='')
             return await interaction.response.send_message(embed=embed)
         
-    @app_commands.command(name='Tapan ittes', description="Make the bot sad and tell it to shut down")
+    @bot.tree.command(name='tapan_ittes', description="Make the bot sad and tell it to shut down")
     async def tapan_ittes(interaction: discord.Interaction):
         operationLogging.log(f'{interaction.user} used: "{interaction.command}" on #{interaction.channel}')
         embed = embedDecorator(interaction)
@@ -130,7 +129,7 @@ def runDiscordBot():
                     reason=f'To laugh at {interaction.user.display_name} for being a dumbass and trying to kill me lmao hahaaa'
                     )
 
-    @app_commands.command(name='Sync', description="Update the bot's list of commands")
+    @bot.tree.command(name='sync', description="Update the bot's list of commands")
     @commands.guild_only()
     @commands.is_owner()
     async def sync(interaction: discord.Interaction):
