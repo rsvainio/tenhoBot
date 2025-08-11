@@ -11,7 +11,7 @@ import aija
 
 def runDiscordBot():
     TOKEN = loadConfig('token')
-    intents = discord.Intents.all()
+    intents = discord.Intents.default()
     bot = commands.Bot(command_prefix = '!', intents=intents)
     operationLogging.init()
 
@@ -96,38 +96,25 @@ def runDiscordBot():
                     embed.add_field(name=f"Disconnected from {voiceClient.channel.name}", value='')
                     return await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
-            embed.add_field(name="Join a voice channel with me in it first, fool", value='')
+            embed.add_field(name="Join a voice channel with me in it first", value='')
             return await interaction.response.send_message(embed=embed)
         
-    @bot.tree.command(name='tapan_ittes', description="Make the bot sad and tell it to shut down")
-    async def tapan_ittes(interaction: discord.Interaction):
+    @bot.tree.command(name='adios', description="Make the bot sad and tell it to shut down")
+    async def adios(interaction: discord.Interaction):
         operationLogging.log(f'{interaction.user} used: "{interaction.command}" on #{interaction.channel}')
         embed = embedDecorator(interaction)
         if await bot.is_owner(interaction.user) or interaction.user.name in loadConfig('whitelist'):
             operationLogging.log('Shutting down...')
-            embed.add_field(name='kuolen nyt', value='')
             await interaction.response.send_message(embed=embed, ephemeral=True)
             await bot.close()
         else:
-            #TODO: Do something fun here (read: permaban their ass)
-            embed.add_field(name='kuolet nyt', value='')
+            embed.add_field(name='no', value='')
             await interaction.response.send_message(embed=embed)
 
             randomFile = random.choice(os.listdir('media/image'))
             with open(f'media/image/{randomFile}', 'rb') as f:
                 pic = discord.File(f)
                 await interaction.channel.send(file=pic)
-                await interaction.guild.create_scheduled_event(
-                    name='Laugh at this dumbass',
-                    description=f'Laugh at {interaction.user.display_name} for being a dumbass and trying to kill me lmao hahaaa',
-                    start_time=discord.utils.utcnow() + datetime.timedelta(0, 300),
-                    end_time=discord.utils.utcnow() + datetime.timedelta(0, 600),
-                    #image=pic, should probably fix this
-                    entity_type=discord.EntityType.external,
-                    privacy_level=discord.PrivacyLevel.guild_only,
-                    location=f"{interaction.user.display_name}'s mom's house",
-                    reason=f'To laugh at {interaction.user.display_name} for being a dumbass and trying to kill me lmao hahaaa'
-                    )
 
     @bot.tree.command(name='sync', description="Update the bot's list of commands")
     @commands.guild_only()
@@ -148,14 +135,10 @@ def runDiscordBot():
 async def joinVoiceChannel(interaction: discord.Interaction):
     embed = embedDecorator(interaction)
     if not interaction.user.voice:
-        embed.add_field(name="Join a voice channel first, fool", value='')
-        await interaction.response.send_message(embed=embed)
-        return
+        return None
 
     voiceChannel: discord.VoiceChannel = interaction.user.voice.channel
     voiceClient: discord.VoiceClient = await voiceChannel.connect(reconnect=False)
-    embed.add_field(name=f"Connected to voice channel {voiceChannel.name}", value='')
-    await interaction.response.send_message(embed=embed)
     print(voiceClient.channel)
     return voiceClient
 

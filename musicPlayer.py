@@ -69,11 +69,17 @@ class MusicPlayer(Cog):
             embed.add_field(name='Video queue already playing, not starting', value='')
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
+        elif not self.videoQueue:
+            print('No videos in the queue, not starting')
+            embed = embedDecorator(interaction)
+            embed.add_field(name='No videos in the queue, not starting', value='')
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
 
         print('Starting to play video queue')
         embed = embedDecorator(interaction)
         embed.add_field(name='Starting to play video queue', value='')
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
         voiceClient: discord.VoiceClient = await joinVoiceChannel(interaction)
         self.playingQueue = True
 
